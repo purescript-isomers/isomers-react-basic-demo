@@ -1,2 +1,2 @@
 # isomers-react-basic-demo
-Trivial demo for isomers + nodejs + react-basic
+Trivial demo of isomers + nodejs + react-basic
