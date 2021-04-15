@@ -1,2 +1,3 @@
-# purescript-isomers-react-basic-demo
-Trivial demo of isomers + nodejs + react-basic in action
+# purescript-isomers-react-basic-examples
+
+Some examples of isomers + nodejs + react-basic in action
