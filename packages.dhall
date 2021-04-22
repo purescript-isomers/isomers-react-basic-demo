@@ -6,6 +6,8 @@ let upstream =
 
 in  upstream
   with
+    httpure = upstream.httpure // { version = "b3eb977096b5ea177fdffd8fc9c61bcbbcfab49d" }
+  with
     homogeneous = mkPackage
       [ "assert", "console", "effect", "foreign-object", "psci-support"
       , "record-extra", "typelevel-eval", "variant"
@@ -21,11 +23,54 @@ in  upstream
   with
     isomers = ../isomers/spago.dhall as Location
   with
+    media-types = upstream.media-types // { version = "4c685071074065506403197b7a5f22eb661ff17c" }
+  with
     polyform = ../polyform/spago.dhall as Location
   with
     polyform-batteries-core = ../batteries-core/spago.dhall as Location
   with
     polyform-batteries-json = ../batteries-json/spago.dhall as Location
+  with
+    polyform-batteries-urlencoded = ../batteries-urlencoded/spago.dhall as Location
+  with
+    polyform-batteries-env = mkPackage
+      [ "console", "debug", "effect", "polyform-batteries-core", "psci-support", "spec" ]
+      "https://github.com/purescript-polyform/batteries-env.git"
+      "b499cae442893751e57fbaaff02cd0e7a7a56ed0"
+  with
+    postgresql-client = mkPackage
+      [ "aff", "arrays", "argonaut", "assert", "bifunctors", "bytestrings"
+      , "console", "datetime", "decimals", "effect", "either", "exceptions"
+      , "foldable-traversable", "foreign", "foreign-generic", "foreign-object"
+      , "js-date", "lists", "maybe", "newtype", "nullable", "prelude", "psci-support"
+      , "test-unit", "transformers", "tuples"
+      ]
+      "https://github.com/rightfold/purescript-postgresql-client.git"
+      "e6c6bc1e0ed64a315bc8bbfcb95ee871d3cb390a"
+  with
+    prettyprinter =  mkPackage
+      [ "prelude", "unfoldable", "random", "ansi", "console" ]
+      "https://github.com/Kamirus/purescript-prettyprinter.git"
+      "686e9d02c3916a85c6ce1c499be5528a7102b533"
+  with
+    resourcet = mkPackage
+      [ "aff", "ordered-collections", "refs", "transformers" ]
+      "https://github.com/paluh/purescript-resourcet.git"
+      "27b4ed5fa9525fa804d969b7e21f2dbb006e93d4"
+  with
+    routing-duplex-variant = mkPackage
+      [ "assert", "console", "effect", "routing-duplex", "variant" ]
+      "https://github.com/paluh/purescript-routing-duplex-variant.git"
+      "f16f1b21128457fda3176f464f4284aaf18a4e6c"
+  with
+    selda = mkPackage
+      [ "console", "debug", "dotenv", "exists", "heterogeneous", "lists"
+      , "node-sqlite3", "polyform-batteries-env", "postgresql-client", "prelude"
+      , "prettyprinter", "simple-json", "strings", "test-unit", "transformers"
+      , "variant"
+      ]
+      "https://github.com/Kamirus/selda.git"
+      "05f1ea2b750a9133251d7a364af39c3dfc82bc64"
   with
     typelevel-eval = mkPackage
       [ "console", "effect", "globals", "leibniz", "psci-support", "record" ]
@@ -62,7 +107,7 @@ in  upstream
       , "string-parsers", "typelevel-eval", "undefined-is-not-a-problem", "uuid"
       ]
       "https://github.com/purescript-webrow/webrow.git"
-      "b6b928ede6ed5430f759bb39f268061377d5ccd9"
+      "15e32ae072379620c4882b9e98193e3986baee7b"
   with
     web-promise =
       { dependencies =

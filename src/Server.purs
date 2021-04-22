@@ -14,6 +14,7 @@ import Effect.Class (liftEffect)
 import Effect.Class.Console (log)
 import Effect.Now (now)
 import Effect.Random (random)
+import Heterogeneous.Mapping (class HMap, class Mapping, hmap)
 import Isomers.Contrib.Type.Eval.Foldable (Foldl')
 import Isomers.HTTP.ContentTypes (JavaScript)
 import Isomers.Node.Server (serve) as Isomers.Node.Server
@@ -33,9 +34,11 @@ import Prim.Row (class Lacks) as Row
 import React.Basic (JSX)
 import React.Basic.DOM (body_, head, html, meta, script, text) as DOM
 import React.Basic.DOM.Server (renderToString) as DOM
+import Run (Run(..))
 import Server.Static (JSFileStream(..))
 import Server.Static (serveFile, serveJsFile) as Server.Static
 import Spec (make, mkWebSpec) as Spec
+import Type.Equality (to) as Type.Equality
 import Type.Eval (class Eval, Lift, kind TypeExpr)
 import Type.Eval.Foldable (Foldr)
 import Type.Eval.Function (type (<<<)) as E
@@ -43,21 +46,30 @@ import Type.Eval.RowList (FromRow)
 import Type.Prelude (class TypeEquals, RProxy(..))
 import Type.Row (type (+))
 import Unsafe.Coerce (unsafeCoerce)
+import WebRow.Logger (runToConsole, warning) as Logger
+import WebRow.Resource (runBaseResource')
 
--- handlers ∷
---   { static ∷ Array FilePath → Aff (Okayish (Okayish.Type.NotFound HtmlString + ()) (JSFileStream ()))
---   , randomInt ∷ { "application/json" ∷ { max ∷ Int } → Aff Int }
---   , serverTimestamp ∷ { "application/json" ∷ {} → Aff Milliseconds }
---   }
+randomInt { max } = do
+  Logger.warning "log from webrow"
+  r ← liftEffect random
+  pure $ Int.ceil $ Int.toNumber max * r
+
+-- | We can interpret handlers locally
+-- | using this mapping.
+data InterpretHandler m m'
+  = InterpretHandler (m ~> m')
+
+instance mappingInterpretHandler ∷ TypeEquals (n a) (m a) ⇒ Mapping (InterpretHandler m m') (req → n a) (req → m' a) where
+  mapping (InterpretHandler interpreter) f = map (interpreter <<< Type.Equality.to) f
+else instance mappingInterpretHandlerRec ∷ HMap (InterpretHandler m m') { | rec } { | rec' } ⇒ Mapping (InterpretHandler m m') { | rec } { | rec' } where
+  mapping i rec = hmap i rec
+
 handlers =
-  Isomers.Server.unifyMonad
+  hmap (InterpretHandler (Logger.runToConsole))
     { static:
         Server.Static.serveJsFile "/home/paluh/programming/purescript/projects/isomers-react-basic-examples/static"
     , randomInt:
-        { "application/json":
-            \{ max } → do
-              r ← liftEffect random
-              pure $ Int.ceil $ Int.toNumber max * r
+        { "application/json": randomInt
         }
     , serverTimestamp:
         { "application/json": const $ unInstant <$> liftEffect now }
@@ -75,6 +87,8 @@ page content = React.do
         , DOM.script { defer: false, src: "/static/App.Client.js" }
         ]
 
+interpret = runBaseResource' <<< Logger.runToConsole
+
 main ∷ Effect Unit
 main = do
   web ← Spec.make
@@ -87,5 +101,5 @@ main = do
     renderComponent = HtmlString <<< append "<!DOCTYPE html>\n" <<< DOM.renderToString <<< page
 
     handlers' = renderToApi web handlers renderComponent clientRouter
-  onClose ← Isomers.Node.Server.serve spec handlers' { hostname: "127.0.0.1", port: 10000, backlog: Nothing } (log "127.0.0.1:10000")
+  onClose ← Isomers.Node.Server.serve spec handlers' interpret { hostname: "127.0.0.1", port: 10000, backlog: Nothing } (log "127.0.0.1:10000")
   onClose (log "Closed")
