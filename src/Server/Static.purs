@@ -1,13 +1,14 @@
 module Server.Static where
 
 import Prelude
+
 import Data.Array (unsnoc) as Array
 import Data.Either (Either(..))
 import Data.Int (floor) as Int
 import Data.Maybe (Maybe(..), isJust)
 import Data.Profunctor (lcmap)
 import Data.String (Pattern(..), length, stripPrefix) as String
-import Effect.Aff (Aff)
+import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
 import Effect.Unsafe (unsafePerformEffect)
 import Isomers.HTTP.ContentTypes (JavascriptMime)
@@ -70,8 +71,8 @@ type Root
 resolve ∷ Array FilePath → FilePath → FilePath
 resolve ps to = unsafePerformEffect $ FS.resolve ps to
 
-createFileStream ∷ Root → Array FilePath → Aff (Maybe { stream ∷ Stream.Readable (), size ∷ Int })
-createFileStream root segments = do
+createFileStream ∷ ∀ m. MonadAff m ⇒ Root → Array FilePath → m (Maybe { stream ∷ Stream.Readable (), size ∷ Int })
+createFileStream root segments = liftAff do
   absRoot ← liftEffect $ FS.resolve [] root
   absPath ← case Array.unsnoc segments of
     Just { init, last } → liftEffect $ FS.resolve ([ absRoot ] <> init) last
@@ -89,25 +90,27 @@ createFileStream root segments = do
     pure $ Just { size, stream }
 
 serveFile ∷
-  ∀ res.
+  ∀ m res.
   Row.Lacks "ok" res ⇒
+  MonadAff m ⇒
   String →
   Array String →
-  Aff
+  m
     ( Response.Okayish
         ( notFound ∷ HtmlString | res )
         (ReadableFileStream ())
     )
-serveFile root segments = do
+serveFile root segments = liftAff do
   createFileStream root segments
     <#> case _ of
         Nothing → notFound $ HtmlString "Not found"
         Just res → Response.Okayish.Type.fromEither $ Right res
 
 serveJsFile ∷
-  ∀ res.
+  ∀ m res.
   Row.Lacks "ok" res ⇒
+  MonadAff m ⇒
   String →
   Array String →
-  Aff (Response.Okayish ( notFound ∷ HtmlString | res ) (JSFileStream ()))
+  m (Response.Okayish ( notFound ∷ HtmlString | res ) (JSFileStream ()))
 serveJsFile root segments = map JSFileStream <$> serveFile root segments
